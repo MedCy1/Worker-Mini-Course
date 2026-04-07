@@ -128,7 +128,7 @@
       border-top-color: #7c6fff;
       border-radius: 50%;
       flex-shrink: 0;
-      /* Pas de CSS animation - piloté par rAF pour geler avec le main thread */
+      /* No CSS animation - driven by rAF so it freezes with the main thread */
     }
     .ui-label { font-size: .82rem; opacity: .6; }
 
@@ -225,7 +225,7 @@
 <!-- ── PANELS ── -->
 <div class="panels">
 
-  <!-- PANEL : Sans Worker -->
+  <!-- PANEL : Without Worker -->
   <div class="panel bad">
     <div>
       <span class="badge red">Sans Worker</span>
@@ -249,7 +249,7 @@
     <div class="result" id="result-a">En attente…</div>
   </div>
 
-  <!-- PANEL : Avec Worker -->
+  <!-- PANEL : With Worker -->
   <div class="panel good">
     <div>
       <span class="badge green">Avec Worker</span>
@@ -299,48 +299,48 @@
     <button class="code-tab"       onclick="showTab('block')">blocking.js (sans worker)</button>
   </div>
 
-  <pre id="code-main"><span class="cmt">// main.js - thread principal</span>
+  <pre id="code-main"><span class="cmt">// main.js - main thread</span>
 <span class="kw">const</span> worker = <span class="kw">new</span> <span class="fn">Worker</span>(<span class="str">'worker.js'</span>);
 
-<span class="cmt">// Envoyer une tâche au worker</span>
+<span class="cmt">// Send a task to the worker</span>
 worker.<span class="fn">postMessage</span>({ limit: <span class="fn">10_000_000</span> });
 
-<span class="cmt">// Recevoir le résultat sans bloquer</span>
+<span class="cmt">// Receive the result without blocking</span>
 worker.onmessage = (e) => {
   <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Primes found:'</span>, e.data.count);
   <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Time:'</span>, e.data.duration + <span class="str">'ms'</span>);
 };
 
-<span class="cmt">// L'UI continue de répondre pendant ce temps !</span></pre>
+<span class="cmt">// The UI keeps responding during this time!</span></pre>
 
-  <pre id="code-worker" style="display:none"><span class="cmt">// worker.js - même algorithme, thread séparé</span>
+  <pre id="code-worker" style="display:none"><span class="cmt">// worker.js - same algorithm, separate thread</span>
 self.onmessage = (e) => {
   <span class="kw">const</span> { limit } = e.data; <span class="cmt">// 8 000 000</span>
   <span class="kw">const</span> t0 = <span class="fn">performance</span>.<span class="fn">now</span>();
   <span class="kw">let</span> count = <span class="fn">0</span>;
 
-  <span class="cmt">// Division par essai - identique au main thread</span>
+  <span class="cmt">// Trial division - identical to the main thread version</span>
   <span class="kw">for</span> (<span class="kw">let</span> n = <span class="fn">2</span>; n &lt;= limit; n++) {
     <span class="kw">let</span> prime = <span class="kw">true</span>;
     <span class="kw">for</span> (<span class="kw">let</span> d = <span class="fn">2</span>; d * d &lt;= n; d++) {
       <span class="kw">if</span> (n % d === <span class="fn">0</span>) { prime = <span class="kw">false</span>; <span class="kw">break</span>; }
     }
     <span class="kw">if</span> (prime) count++;
-    <span class="cmt">// Progression envoyée tous les 200 000 nombres</span>
+    <span class="cmt">// Send progress every 200,000 numbers</span>
     <span class="kw">if</span> (n % <span class="fn">200_000</span> === <span class="fn">0</span>)
       self.<span class="fn">postMessage</span>({ progress: n / limit });
   }
 
-  <span class="cmt">// Résultat final - UI n'a jamais été bloquée</span>
+  <span class="cmt">// Final result - UI was never blocked</span>
   self.<span class="fn">postMessage</span>({ count, duration: (<span class="fn">performance</span>.<span class="fn">now</span>() - t0).<span class="fn">toFixed</span>(<span class="fn">1</span>) });
 };</pre>
 
-  <pre id="code-block" style="display:none"><span class="cmt">// Sans worker - division par essai naïve dans le main thread</span>
+  <pre id="code-block" style="display:none"><span class="cmt">// Without worker - naive trial division in the main thread</span>
 <span class="kw">const</span> LIMIT = <span class="fn">8_000_000</span>;
 <span class="kw">const</span> t0 = <span class="fn">performance</span>.<span class="fn">now</span>();
 <span class="kw">let</span> count = <span class="fn">0</span>;
 
-<span class="cmt">// O(n√n) - intentionnellement lent pour démontrer le freeze</span>
+<span class="cmt">// O(n√n) - intentionally slow to demonstrate the freeze</span>
 <span class="fn">outer</span>: <span class="kw">for</span> (<span class="kw">let</span> n = <span class="fn">2</span>; n &lt;= LIMIT; n++) {
   <span class="kw">for</span> (<span class="kw">let</span> d = <span class="fn">2</span>; d * d &lt;= n; d++) {
     <span class="kw">if</span> (n % d === <span class="fn">0</span>) <span class="kw">continue</span> outer;
@@ -348,8 +348,8 @@ self.onmessage = (e) => {
   count++;
 }
 
-<span class="cmt">// Le navigateur était ENTIÈREMENT gelé pendant ~2-4s
-// Aucun clic, aucune animation, aucun rendu possible</span></pre>
+<span class="cmt">// The browser was ENTIRELY frozen for ~2-4s
+// No clicks, no animations, no rendering possible</span></pre>
 </div>
 
 <!-- Worker inline via Blob -->
@@ -359,7 +359,7 @@ self.onmessage = (e) => {
 
   const LIMIT = 10_000_000;
 
-  /* ── Spinner JS-driven (gèle avec le main thread) ── */
+  /* ── Spinner JS-driven (freezes with the main thread) ── */
   let spinAngle = 0;
   const spinnerA = document.getElementById('spinner-a');
   const spinnerB = document.getElementById('spinner-b');
@@ -420,7 +420,7 @@ self.onmessage = (e) => {
     setTimeout(() => {
       mainBusy = true;
       const t0 = performance.now();
-      // Division par essai naïve O(n√n) - intentionnellement lente pour démontrer le freeze
+      // Naive trial division O(n√n) - intentionally slow to demonstrate the freeze
       const BLOCK_LIMIT = 8_000_000;
       let count = 0;
       outer: for (let n = 2; n <= BLOCK_LIMIT; n++) {
