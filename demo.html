@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Workers — Démo interactive</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e8e8f0;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    header h1 { font-size: 2.2rem; }
+    header p  { opacity: .6; margin-top: 8px; font-size: 1rem; }
+    header a  {
+      display: inline-block;
+      margin-top: 16px;
+      color: #7c6fff;
+      text-decoration: none;
+      font-size: .88rem;
+      opacity: .8;
+    }
+    header a:hover { opacity: 1; }
+
+    /* ── COUNTER ANIMATION ── */
+    .counter-bar {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin: 24px 0 40px;
+      flex-wrap: wrap;
+    }
+    .count-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #7c6fff;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .count-dot:nth-child(2) { animation-delay: .2s; }
+    .count-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes pulse {
+      0%, 100% { opacity: .3; transform: scale(1); }
+      50%       { opacity: 1;  transform: scale(1.4); }
+    }
+    .counter-bar.hidden { display: none; }
+
+    /* ── PANELS ── */
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto 48px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel h2 { font-size: 1.2rem; }
+    .panel p  { font-size: .88rem; opacity: .65; line-height: 1.6; }
+
+    .panel.bad  { border-color: #ff6b6b44; }
+    .panel.good { border-color: #6bffb844; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge.red   { background: #ff6b6b22; color: #ff6b6b; }
+    .badge.green { background: #6bffb822; color: #6bffb8; }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-red   { background: #ff6b6b; color: #fff; }
+    .btn-green { background: #6bffb8; color: #0f0f1a; }
+    .btn-gray  { background: rgba(255,255,255,.1); color: #e8e8f0; }
+
+    /* Result area */
+    .result {
+      background: rgba(0,0,0,.3);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: .83rem;
+      min-height: 60px;
+      opacity: .75;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    /* UI freeze indicator */
+    .ui-test {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,.15);
+      border-top-color: #7c6fff;
+      border-radius: 50%;
+      flex-shrink: 0;
+      /* Pas de CSS animation — piloté par rAF pour geler avec le main thread */
+    }
+    .ui-label { font-size: .82rem; opacity: .6; }
+
+    /* Progress bar */
+    .prog-wrap { background: rgba(255,255,255,.07); border-radius: 999px; height: 6px; overflow: hidden; }
+    .prog-fill  { height: 100%; width: 0; border-radius: 999px; transition: width .1s; }
+    .prog-fill.red   { background: #ff6b6b; }
+    .prog-fill.green { background: #6bffb8; }
+
+    /* ── VISUALISER ── */
+    .visualiser-section {
+      max-width: 1000px;
+      margin: 0 auto 48px;
+    }
+    .visualiser-section h2 { font-size: 1.3rem; margin-bottom: 16px; text-align: center; }
+
+    .vis-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .vis-panel {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .vis-panel h3 { font-size: .9rem; margin-bottom: 12px; opacity: .7; }
+    canvas { width: 100%; height: 120px; display: block; border-radius: 8px; background: rgba(0,0,0,.2); }
+
+    /* ── CODE VIEWER ── */
+    .code-section {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .code-section h2 { font-size: 1.3rem; margin-bottom: 16px; text-align: center; }
+    .code-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .code-tab {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      padding: 8px 18px;
+      cursor: pointer;
+      font-size: .85rem;
+      transition: background .2s;
+    }
+    .code-tab.active { background: #7c6fff33; border-color: #7c6fff66; color: #a89fff; }
+    pre {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 24px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: .82rem;
+      line-height: 1.6;
+      color: #c8c0ff;
+    }
+    .kw  { color: #a89fff; }
+    .str { color: #6bffb8; }
+    .cmt { color: #4a5568; font-style: italic; }
+    .fn  { color: #ffd166; }
+
+    @media (max-width: 680px) {
+      .panels, .vis-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚙️ Web Workers — Démo interactive</h1>
+  <p>Calcul de nombres premiers jusqu'à N — avec et sans Worker</p>
+  <a href="index.html">← Retour aux slides</a>
+</header>
+
+<!-- Animated counter while computing -->
+<div class="counter-bar hidden" id="anim-counter">
+  <div class="count-dot"></div>
+  <div class="count-dot"></div>
+  <div class="count-dot"></div>
+</div>
+
+<!-- ── PANELS ── -->
+<div class="panels">
+
+  <!-- PANEL : Sans Worker -->
+  <div class="panel bad">
+    <div>
+      <span class="badge red">Sans Worker</span>
+    </div>
+    <h2>🚫 Calcul dans le Main Thread</h2>
+    <p>Le thread principal est bloqué. L'UI gèle, le spinner s'arrête et les clics ne répondent plus.</p>
+
+    <div class="ui-test">
+      <div class="spinner" id="spinner-a"></div>
+      <span class="ui-label">Si le spinner est figé → UI bloquée</span>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-fill red" id="prog-a"></div>
+    </div>
+
+    <button class="btn btn-red" id="btn-blocking" onclick="runBlocking()">
+      ▶ Lancer (bloquant)
+    </button>
+
+    <div class="result" id="result-a">En attente…</div>
+  </div>
+
+  <!-- PANEL : Avec Worker -->
+  <div class="panel good">
+    <div>
+      <span class="badge green">Avec Worker</span>
+    </div>
+    <h2>✅ Calcul dans un Web Worker</h2>
+    <p>Le calcul se fait dans un thread séparé. L'UI reste fluide, le spinner tourne, vous pouvez interagir.</p>
+
+    <div class="ui-test">
+      <div class="spinner" id="spinner-b"></div>
+      <span class="ui-label">Spinner toujours actif → UI libre</span>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-fill green" id="prog-b"></div>
+    </div>
+
+    <button class="btn btn-green" id="btn-worker" onclick="runWorker()">
+      ▶ Lancer (non-bloquant)
+    </button>
+
+    <div class="result" id="result-b">En attente…</div>
+  </div>
+
+</div>
+
+<!-- ── VISUALISER ── -->
+<div class="visualiser-section">
+  <h2>📊 Activité des threads en temps réel</h2>
+  <div class="vis-wrap">
+    <div class="vis-panel">
+      <h3>Main Thread</h3>
+      <canvas id="canvas-main" width="440" height="120"></canvas>
+    </div>
+    <div class="vis-panel">
+      <h3>Worker Thread</h3>
+      <canvas id="canvas-worker" width="440" height="120"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── CODE ── -->
+<div class="code-section">
+  <h2>📄 Le code</h2>
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="showTab('main')">main.js (page)</button>
+    <button class="code-tab"       onclick="showTab('worker')">worker.js (worker)</button>
+    <button class="code-tab"       onclick="showTab('block')">blocking.js (sans worker)</button>
+  </div>
+
+  <pre id="code-main"><span class="cmt">// main.js — thread principal</span>
+<span class="kw">const</span> worker = <span class="kw">new</span> <span class="fn">Worker</span>(<span class="str">'worker.js'</span>);
+
+<span class="cmt">// Envoyer une tâche au worker</span>
+worker.<span class="fn">postMessage</span>({ limit: <span class="fn">10_000_000</span> });
+
+<span class="cmt">// Recevoir le résultat sans bloquer</span>
+worker.onmessage = (e) => {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Primes found:'</span>, e.data.count);
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Time:'</span>, e.data.duration + <span class="str">'ms'</span>);
+};
+
+<span class="cmt">// L'UI continue de répondre pendant ce temps !</span></pre>
+
+  <pre id="code-worker" style="display:none"><span class="cmt">// worker.js — même algorithme, thread séparé</span>
+self.onmessage = (e) => {
+  <span class="kw">const</span> { limit } = e.data; <span class="cmt">// 8 000 000</span>
+  <span class="kw">const</span> t0 = <span class="fn">performance</span>.<span class="fn">now</span>();
+  <span class="kw">let</span> count = <span class="fn">0</span>;
+
+  <span class="cmt">// Division par essai — identique au main thread</span>
+  <span class="kw">for</span> (<span class="kw">let</span> n = <span class="fn">2</span>; n &lt;= limit; n++) {
+    <span class="kw">let</span> prime = <span class="kw">true</span>;
+    <span class="kw">for</span> (<span class="kw">let</span> d = <span class="fn">2</span>; d * d &lt;= n; d++) {
+      <span class="kw">if</span> (n % d === <span class="fn">0</span>) { prime = <span class="kw">false</span>; <span class="kw">break</span>; }
+    }
+    <span class="kw">if</span> (prime) count++;
+    <span class="cmt">// Progression envoyée tous les 200 000 nombres</span>
+    <span class="kw">if</span> (n % <span class="fn">200_000</span> === <span class="fn">0</span>)
+      self.<span class="fn">postMessage</span>({ progress: n / limit });
+  }
+
+  <span class="cmt">// Résultat final — UI n'a jamais été bloquée</span>
+  self.<span class="fn">postMessage</span>({ count, duration: (<span class="fn">performance</span>.<span class="fn">now</span>() - t0).<span class="fn">toFixed</span>(<span class="fn">1</span>) });
+};</pre>
+
+  <pre id="code-block" style="display:none"><span class="cmt">// Sans worker — division par essai naïve dans le main thread</span>
+<span class="kw">const</span> LIMIT = <span class="fn">8_000_000</span>;
+<span class="kw">const</span> t0 = <span class="fn">performance</span>.<span class="fn">now</span>();
+<span class="kw">let</span> count = <span class="fn">0</span>;
+
+<span class="cmt">// O(n√n) — intentionnellement lent pour démontrer le freeze</span>
+<span class="fn">outer</span>: <span class="kw">for</span> (<span class="kw">let</span> n = <span class="fn">2</span>; n &lt;= LIMIT; n++) {
+  <span class="kw">for</span> (<span class="kw">let</span> d = <span class="fn">2</span>; d * d &lt;= n; d++) {
+    <span class="kw">if</span> (n % d === <span class="fn">0</span>) <span class="kw">continue</span> outer;
+  }
+  count++;
+}
+
+<span class="cmt">// ⚠️ Le navigateur était ENTIÈREMENT gelé pendant ~2-4s
+// Aucun clic, aucune animation, aucun rendu possible</span></pre>
+</div>
+
+<!-- Worker inline via Blob -->
+<script>
+  const LIMIT = 10_000_000;
+
+  /* ── Spinner JS-driven (gèle avec le main thread) ── */
+  let spinAngle = 0;
+  const spinnerA = document.getElementById('spinner-a');
+  const spinnerB = document.getElementById('spinner-b');
+  function rafSpin() {
+    spinAngle = (spinAngle + 6) % 360;
+    const t = `rotate(${spinAngle}deg)`;
+    spinnerA.style.transform = t;
+    spinnerB.style.transform = t;
+    requestAnimationFrame(rafSpin);
+  }
+  requestAnimationFrame(rafSpin);
+
+  /* ── Canvas visualiser ── */
+  const ctxMain   = document.getElementById('canvas-main').getContext('2d');
+  const ctxWorker = document.getElementById('canvas-worker').getContext('2d');
+  let mainBusy   = false;
+  let workerBusy = false;
+  const W = 440, H = 120;
+  let mainData   = new Array(W).fill(0);
+  let workerData = new Array(W).fill(0);
+
+  function drawGraph(ctx, data, color) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = color + '22';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = i;
+      const y = H - data[i] * (H - 10) - 5;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+  }
+
+  function tickMain() {
+    mainData.push(mainBusy ? 1 : Math.random() * 0.15 + 0.02);
+    if (mainData.length > W) mainData.shift();
+    drawGraph(ctxMain, mainData, '#ff6b6b');
+  }
+  function tickWorker() {
+    workerData.push(workerBusy ? 0.85 + Math.random() * 0.15 : Math.random() * 0.12 + 0.02);
+    if (workerData.length > W) workerData.shift();
+    drawGraph(ctxWorker, workerData, '#6bffb8');
+  }
+  setInterval(tickMain, 50);
+  setInterval(tickWorker, 50);
+
+  /* ── BLOCKING ── */
+  function runBlocking() {
+    const btn = document.getElementById('btn-blocking');
+    btn.disabled = true;
+    document.getElementById('result-a').textContent = '⏳ Calcul en cours (UI gelée)…';
+    document.getElementById('prog-a').style.width = '0%';
+
+    // Small timeout so the browser can render the button state
+    setTimeout(() => {
+      mainBusy = true;
+      const t0 = performance.now();
+      // Division par essai naïve O(n√n) — intentionnellement lente pour démontrer le freeze
+      const BLOCK_LIMIT = 8_000_000;
+      let count = 0;
+      outer: for (let n = 2; n <= BLOCK_LIMIT; n++) {
+        for (let d = 2; d * d <= n; d++) {
+          if (n % d === 0) continue outer;
+        }
+        count++;
+      }
+      const dur = (performance.now() - t0).toFixed(1);
+      mainBusy = false;
+
+      document.getElementById('prog-a').style.width = '100%';
+      document.getElementById('result-a').textContent =
+        `✅ ${count.toLocaleString()} nombres premiers\n⏱ Durée : ${dur} ms\n⚠️ L'UI était bloquée pendant tout ce temps.`;
+      btn.disabled = false;
+    }, 30);
+  }
+
+  /* ── WORKER (inline Blob) ── */
+  const workerCode = `
+    self.onmessage = function(e) {
+      const limit = e.data.limit;
+      const t0 = performance.now();
+      var count = 0;
+      for (var n = 2; n <= limit; n++) {
+        var prime = true;
+        for (var d = 2; d * d <= n; d++) {
+          if (n % d === 0) { prime = false; break; }
+        }
+        if (prime) count++;
+        if (n % 200000 === 0) {
+          self.postMessage({ progress: n / limit });
+        }
+      }
+      self.postMessage({ count: count, duration: (performance.now() - t0).toFixed(1) });
+    };
+  `;
+
+  function runWorker() {
+    const btn = document.getElementById('btn-worker');
+    btn.disabled = true;
+    document.getElementById('result-b').textContent = '⏳ Worker en cours… (interagissez ici !)';
+    document.getElementById('prog-b').style.width = '0%';
+
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const url  = URL.createObjectURL(blob);
+    const w    = new Worker(url);
+
+    workerBusy = true;
+    w.postMessage({ limit: LIMIT });
+
+    w.onmessage = (e) => {
+      if (e.data.progress !== undefined) {
+        document.getElementById('prog-b').style.width = Math.min(e.data.progress * 100, 95) + '%';
+        return;
+      }
+      workerBusy = false;
+      document.getElementById('prog-b').style.width = '100%';
+      document.getElementById('result-b').textContent =
+        `✅ ${e.data.count.toLocaleString()} nombres premiers\n⏱ Durée : ${e.data.duration} ms\n✅ L'UI est restée fluide tout du long.`;
+      w.terminate();
+      URL.revokeObjectURL(url);
+      btn.disabled = false;
+    };
+  }
+
+  /* ── Code tabs ── */
+  function showTab(tab) {
+    document.getElementById('code-main').style.display   = tab === 'main'   ? '' : 'none';
+    document.getElementById('code-worker').style.display = tab === 'worker' ? '' : 'none';
+    document.getElementById('code-block').style.display  = tab === 'block'  ? '' : 'none';
+    document.querySelectorAll('.code-tab').forEach((el, i) => {
+      el.classList.toggle('active', ['main','worker','block'][i] === tab);
+    });
+  }
+</script>
+</body>
+</html>
