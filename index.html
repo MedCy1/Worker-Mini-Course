@@ -319,8 +319,20 @@
       min-width: 180px;
       max-width: 220px;
     }
-    .kp-icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .kp-icon { margin-bottom: 8px; }
     .kp p { font-size: .85rem; }
+
+    /* ── Lucide icons ── */
+    .logo svg { width: 80px; height: 80px; stroke: #7c6fff; }
+    .arch-icon svg { width: 32px; height: 32px; }
+    .type-icon svg { width: 32px; height: 32px; }
+    .usecase-icon svg { width: 26px; height: 26px; }
+    .kp-icon svg { width: 28px; height: 28px; }
+    .limit-card h3 svg { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; }
+    .limit-card.yes h3 svg { stroke: #6bffb8; }
+    .limit-card.no  h3 svg { stroke: #ff6b6b; }
+    .demo-link svg { width: 18px; height: 18px; }
+    .task-item svg { width: 14px; height: 14px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -329,7 +341,7 @@
 
   <!-- ── SLIDE 1 : COVER ── -->
   <section class="slide slide-cover active">
-    <div class="logo">⚙️</div>
+    <div class="logo"><i data-lucide="cpu"></i></div>
     <div class="tag">Web API — MDN</div>
     <h1>Web Workers <span class="accent">API</span></h1>
     <p class="subtitle">Parallélisme dans le navigateur, sans bloquer l'UI</p>
@@ -345,9 +357,9 @@
         <div class="thread-label">Sans Worker</div>
         <div class="thread-tasks">
           <div class="task-item"><span class="dot red"></span>Calcul lourd (CPU)</div>
-          <div class="task-item"><span class="dot yellow"></span>⏸ Rendu UI bloqué</div>
-          <div class="task-item"><span class="dot yellow"></span>⏸ Clics ignorés</div>
-          <div class="task-item"><span class="dot yellow"></span>⏸ Animations figées</div>
+          <div class="task-item"><span class="dot yellow"></span><i data-lucide="pause-circle"></i> Rendu UI bloqué</div>
+          <div class="task-item"><span class="dot yellow"></span><i data-lucide="pause-circle"></i> Clics ignorés</div>
+          <div class="task-item"><span class="dot yellow"></span><i data-lucide="pause-circle"></i> Animations figées</div>
         </div>
       </div>
       <div class="thread-box free">
@@ -369,7 +381,7 @@
     <p>Un script JavaScript qui s'exécute dans un thread séparé, communiquant avec la page principale via un système de <strong>messages</strong>.</p>
     <div class="arch-diagram">
       <div class="arch-box main">
-        <div class="arch-icon">🌐</div>
+        <div class="arch-icon"><i data-lucide="monitor"></i></div>
         <h3>Main Thread</h3>
         <div class="msg-label">Page / UI</div>
       </div>
@@ -379,7 +391,7 @@
         <div class="msg-label">Messages copiés (structuredClone)</div>
       </div>
       <div class="arch-box worker">
-        <div class="arch-icon">⚙️</div>
+        <div class="arch-icon"><i data-lucide="cpu"></i></div>
         <h3>Worker Thread</h3>
         <div class="msg-label">Calcul isolé</div>
       </div>
@@ -392,17 +404,17 @@
     <h2>3 types de <span class="accent">Workers</span></h2>
     <div class="types-grid">
       <div class="type-card">
-        <div class="type-icon">👤</div>
+        <div class="type-icon"><i data-lucide="user"></i></div>
         <h3>Dedicated Worker</h3>
         <p>Lié à un seul script. Le cas d'usage le plus courant. Terminé avec la page.</p>
       </div>
       <div class="type-card">
-        <div class="type-icon">🤝</div>
+        <div class="type-icon"><i data-lucide="users"></i></div>
         <h3>Shared Worker</h3>
         <p>Partagé entre plusieurs onglets/iframes de même origine. Communication via un port.</p>
       </div>
       <div class="type-card">
-        <div class="type-icon">🛡️</div>
+        <div class="type-icon"><i data-lucide="shield"></i></div>
         <h3>Service Worker</h3>
         <p>Proxy réseau persistent. Gère le cache, le offline et les push notifications.</p>
       </div>
@@ -447,21 +459,21 @@
     <h2>Quand utiliser <span class="accent">Web Workers</span> ?</h2>
     <div class="usecases-list">
       <div class="usecase">
-        <div class="usecase-icon">🔢</div>
+        <div class="usecase-icon"><i data-lucide="hash"></i></div>
         <div class="usecase-text">
           <h3>Calculs intensifs</h3>
           <p>Chiffrement/déchiffrement, compression, traitement d'images pixel par pixel, simulations physiques.</p>
         </div>
       </div>
       <div class="usecase">
-        <div class="usecase-icon">📊</div>
+        <div class="usecase-icon"><i data-lucide="bar-chart-2"></i></div>
         <div class="usecase-text">
           <h3>Traitement de données massives</h3>
           <p>Parsing de gros fichiers JSON/CSV, tri et filtrage de larges datasets en temps réel.</p>
         </div>
       </div>
       <div class="usecase">
-        <div class="usecase-icon">🎮</div>
+        <div class="usecase-icon"><i data-lucide="gamepad-2"></i></div>
         <div class="usecase-text">
           <h3>Jeux & applications temps-réel</h3>
           <p>Physique, IA, pathfinding déportés dans un worker pour garder 60 fps sur le rendu.</p>
@@ -476,7 +488,7 @@
     <h2><span class="accent">Possibilités</span> & Limites</h2>
     <div class="limits-grid">
       <div class="limit-card yes">
-        <h3>✅ Disponible dans le Worker</h3>
+        <h3><i data-lucide="check-circle"></i> Disponible dans le Worker</h3>
         <ul>
           <li>fetch / XMLHttpRequest</li>
           <li>setTimeout / setInterval</li>
@@ -487,7 +499,7 @@
         </ul>
       </div>
       <div class="limit-card no">
-        <h3>❌ Non disponible dans le Worker</h3>
+        <h3><i data-lucide="x-circle"></i> Non disponible dans le Worker</h3>
         <ul>
           <li>Accès direct au DOM</li>
           <li>Objet window</li>
@@ -504,7 +516,7 @@
     <div class="tag">Démonstration</div>
     <h2>Place à la <span class="accent">démo</span></h2>
     <p>Comparaison interactive : calcul de nombres premiers avec et sans Web Worker — l'UI reste fluide grâce au Worker.</p>
-    <a href="demo.html" class="demo-link">🚀 Lancer la démo</a>
+    <a href="demo.html" class="demo-link"><i data-lucide="play"></i> Lancer la démo</a>
   </section>
 
   <!-- ── SLIDE 9 : CONCLUSION ── -->
@@ -513,19 +525,19 @@
     <h2>À retenir</h2>
     <div class="key-points">
       <div class="kp">
-        <div class="kp-icon">⚡</div>
+        <div class="kp-icon"><i data-lucide="zap"></i></div>
         <p>UI toujours <strong>réactive</strong>, même pendant des traitements lourds</p>
       </div>
       <div class="kp">
-        <div class="kp-icon">📨</div>
+        <div class="kp-icon"><i data-lucide="message-square"></i></div>
         <p>Communication par <strong>messages</strong> — isolation totale des contextes</p>
       </div>
       <div class="kp">
-        <div class="kp-icon">🌍</div>
+        <div class="kp-icon"><i data-lucide="globe"></i></div>
         <p>Support navigateur <strong>universel</strong> (>97 % des utilisateurs)</p>
       </div>
       <div class="kp">
-        <div class="kp-icon">🔧</div>
+        <div class="kp-icon"><i data-lucide="wrench"></i></div>
         <p>3 types : <strong>Dedicated, Shared, Service</strong> Worker</p>
       </div>
     </div>
@@ -541,7 +553,9 @@
 <div class="progress" id="progress"></div>
 <div class="slide-counter" id="counter"></div>
 
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>
+  lucide.createIcons();
   const slides = document.querySelectorAll('.slide');
   let current = 0;
 
