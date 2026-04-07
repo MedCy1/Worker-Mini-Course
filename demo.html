@@ -197,6 +197,47 @@
       .panels, .vis-wrap { grid-template-columns: 1fr; }
     }
 
+    /* ── Fun particles demo ── */
+    .fun-section {
+      max-width: 1000px;
+      margin: 0 auto 48px;
+    }
+    .fun-section > h2 { font-size: 1.3rem; margin-bottom: 8px; text-align: center; }
+    .fun-section > p  { text-align: center; font-size: .88rem; opacity: .6; margin-bottom: 20px; }
+    .fun-wrap {
+      background: #080812;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    #particles-canvas { width: 100%; height: 280px; display: block; }
+    .fun-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(255,255,255,.03);
+      flex-wrap: wrap;
+    }
+    .fps-badge {
+      font-family: 'Courier New', monospace;
+      font-size: .9rem;
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(255,255,255,.1);
+      padding: 6px 14px;
+      border-radius: 8px;
+      min-width: 80px;
+      text-align: center;
+    }
+    .fun-result {
+      font-size: .82rem;
+      font-family: 'Courier New', monospace;
+      opacity: .7;
+      margin-left: auto;
+    }
+    .fun-section h2 svg,
+    .fun-section svg { width: 1.1rem; height: 1.1rem; vertical-align: -2px; margin-right: 6px; }
+
     /* ── Lucide icons ── */
     header h1 svg { width: 2rem; height: 2rem; vertical-align: middle; margin-right: 8px; }
     .panel h2 svg { width: 1.1rem; height: 1.1rem; vertical-align: -2px; margin-right: 6px; }
@@ -286,6 +327,25 @@
     <div class="vis-panel">
       <h3>Worker Thread</h3>
       <canvas id="canvas-worker" width="440" height="120"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── FUN DEMO : PARTICLES ── -->
+<div class="fun-section">
+  <h2><i data-lucide="sparkles"></i> Exemple concret - Simulation de particules</h2>
+  <p>120 billes rebondissent en temps réel via <code>requestAnimationFrame</code>. Lancez un stress et observez.</p>
+  <div class="fun-wrap">
+    <canvas id="particles-canvas" width="960" height="280"></canvas>
+    <div class="fun-controls">
+      <span class="fps-badge" id="fps-display">-- FPS</span>
+      <button class="btn btn-red" id="btn-stress-block" onclick="particleStressBlocking()">
+        <i data-lucide="zap-off"></i> Stress bloquant
+      </button>
+      <button class="btn btn-green" id="btn-stress-worker" onclick="particleStressWorker()">
+        <i data-lucide="zap"></i> Stress worker
+      </button>
+      <span class="fun-result" id="fun-result">Appuyez sur un bouton pour lancer le stress test</span>
     </div>
   </div>
 </div>
@@ -481,6 +541,167 @@ self.onmessage = (e) => {
       document.getElementById('prog-b').style.width = '100%';
       document.getElementById('result-b').textContent =
         `${e.data.count.toLocaleString()} nombres premiers\nDurée : ${e.data.duration} ms\nL'UI est restée fluide tout du long.`;
+      w.terminate();
+      URL.revokeObjectURL(url);
+      btn.disabled = false;
+    };
+  }
+
+  /* ── Particle simulation ── */
+  const pc   = document.getElementById('particles-canvas');
+  const pctx = pc.getContext('2d');
+  let PW = pc.offsetWidth, PH = 280;
+  pc.width  = PW;
+  pc.height = PH;
+
+  window.addEventListener('resize', () => {
+    PW = pc.offsetWidth;
+    pc.width  = PW;
+    pc.height = PH;
+  });
+
+  const PALETTE = ['#7c6fff','#6bffb8','#ffd166','#ff6b6b','#a89fff','#ff9f6b','#6bcfff'];
+  const balls = Array.from({ length: 120 }, () => {
+    const r = 5 + Math.random() * 10;
+    return {
+      x:  r + Math.random() * (PW - 2 * r),
+      y:  r + Math.random() * (PH - 2 * r),
+      vx: (Math.random() - 0.5) * 5,
+      vy: (Math.random() - 0.5) * 5,
+      r,
+      color: PALETTE[Math.floor(Math.random() * PALETTE.length)]
+    };
+  });
+
+  let fpsFrames = 0, fpsLast = performance.now();
+
+  function particleLoop() {
+    // FPS counter
+    fpsFrames++;
+    const now = performance.now();
+    if (now - fpsLast >= 600) {
+      const fps = Math.round(fpsFrames / ((now - fpsLast) / 1000));
+      document.getElementById('fps-display').textContent = fps + ' FPS';
+      fpsFrames = 0;
+      fpsLast = now;
+    }
+
+    // Physics
+    for (const b of balls) {
+      b.x += b.vx; b.y += b.vy;
+      if (b.x - b.r < 0)  { b.x = b.r;      b.vx *= -1; }
+      if (b.x + b.r > PW) { b.x = PW - b.r; b.vx *= -1; }
+      if (b.y - b.r < 0)  { b.y = b.r;      b.vy *= -1; }
+      if (b.y + b.r > PH) { b.y = PH - b.r; b.vy *= -1; }
+    }
+
+    // Render
+    pctx.clearRect(0, 0, PW, PH);
+    for (const b of balls) {
+      pctx.beginPath();
+      pctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      const g = pctx.createRadialGradient(b.x - b.r * .3, b.y - b.r * .3, b.r * .1, b.x, b.y, b.r);
+      g.addColorStop(0, b.color + 'ff');
+      g.addColorStop(1, b.color + '33');
+      pctx.fillStyle = g;
+      pctx.fill();
+    }
+
+    requestAnimationFrame(particleLoop);
+  }
+  requestAnimationFrame(particleLoop);
+
+  // Shared n-body force computation (returns kick vectors)
+  function computeNBody(positions) {
+    const n = positions.length;
+    const vx = new Float64Array(n);
+    const vy = new Float64Array(n);
+    for (let iter = 0; iter < 5000; iter++) {
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const dx = positions[j].x - positions[i].x;
+          const dy = positions[j].y - positions[i].y;
+          const d  = Math.sqrt(dx * dx + dy * dy) + 1;
+          const f  = 1 / (d * d);
+          vx[i] -= f * dx / d;  vy[i] -= f * dy / d;
+          vx[j] += f * dx / d;  vy[j] += f * dy / d;
+        }
+      }
+    }
+    return Array.from(vx).map((v, i) => {
+      const mag = Math.sqrt(v * v + vy[i] * vy[i]) || 1;
+      return { vx: (v / mag) * 12, vy: (vy[i] / mag) * 12 };
+    });
+  }
+
+  function applyKicks(kicks) {
+    kicks.forEach((k, i) => { balls[i].vx = k.vx; balls[i].vy = k.vy; });
+    // Dampen back to normal speed after 2s
+    setTimeout(() => {
+      balls.forEach(b => {
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > 5) { b.vx = (b.vx / spd) * (2 + Math.random() * 3); b.vy = (b.vy / spd) * (2 + Math.random() * 3); }
+      });
+    }, 2000);
+  }
+
+  // Blocking stress — same computation, main thread
+  function particleStressBlocking() {
+    const btn = document.getElementById('btn-stress-block');
+    btn.disabled = true;
+    document.getElementById('fun-result').textContent = 'Calcul des forces en cours... les billes sont figées !';
+    setTimeout(() => {
+      const t0   = performance.now();
+      const kicks = computeNBody(balls.map(b => ({ x: b.x, y: b.y })));
+      const dur  = (performance.now() - t0).toFixed(0);
+      applyKicks(kicks);
+      document.getElementById('fun-result').textContent =
+        `${dur} ms de freeze - les billes étaient figées, puis projetées !`;
+      btn.disabled = false;
+    }, 30);
+  }
+
+  // Worker stress — same computation, separate thread
+  const particleWorkerCode = `
+    self.onmessage = function(e) {
+      const pos = e.data;
+      const n   = pos.length;
+      const vx  = new Float64Array(n);
+      const vy  = new Float64Array(n);
+      for (let iter = 0; iter < 5000; iter++) {
+        for (let i = 0; i < n; i++) {
+          for (let j = i + 1; j < n; j++) {
+            const dx = pos[j].x - pos[i].x;
+            const dy = pos[j].y - pos[i].y;
+            const d  = Math.sqrt(dx*dx + dy*dy) + 1;
+            const f  = 1 / (d*d);
+            vx[i] -= f*dx/d;  vy[i] -= f*dy/d;
+            vx[j] += f*dx/d;  vy[j] += f*dy/d;
+          }
+        }
+      }
+      const kicks = Array.from(vx).map((v, i) => {
+        const mag = Math.sqrt(v*v + vy[i]*vy[i]) || 1;
+        return { vx: (v/mag)*12, vy: (vy[i]/mag)*12 };
+      });
+      self.postMessage(kicks);
+    };
+  `;
+
+  function particleStressWorker() {
+    const btn = document.getElementById('btn-stress-worker');
+    btn.disabled = true;
+    document.getElementById('fun-result').textContent = 'Worker calcule les forces n-corps... les billes continuent de bouger !';
+    const t0   = performance.now();
+    const blob = new Blob([particleWorkerCode], { type: 'application/javascript' });
+    const url  = URL.createObjectURL(blob);
+    const w    = new Worker(url);
+    w.postMessage(balls.map(b => ({ x: b.x, y: b.y })));
+    w.onmessage = (e) => {
+      const dur = (performance.now() - t0).toFixed(0);
+      applyKicks(e.data);
+      document.getElementById('fun-result').textContent =
+        `${dur} ms de calcul - les billes continuaient, puis ont été projetées par les forces !`;
       w.terminate();
       URL.revokeObjectURL(url);
       btn.disabled = false;
