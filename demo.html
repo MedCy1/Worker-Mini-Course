@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Web Workers — Démo interactive</title>
+  <title>Web Workers - Démo interactive</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -128,7 +128,7 @@
       border-top-color: #7c6fff;
       border-radius: 50%;
       flex-shrink: 0;
-      /* Pas de CSS animation — piloté par rAF pour geler avec le main thread */
+      /* Pas de CSS animation - piloté par rAF pour geler avec le main thread */
     }
     .ui-label { font-size: .82rem; opacity: .6; }
 
@@ -210,8 +210,8 @@
 <body>
 
 <header>
-  <h1><i data-lucide="cpu"></i> Web Workers — Démo interactive</h1>
-  <p>Calcul de nombres premiers jusqu'à N — avec et sans Worker</p>
+  <h1><i data-lucide="cpu"></i> Web Workers - Démo interactive</h1>
+  <p>Calcul de nombres premiers jusqu'à N - avec et sans Worker</p>
   <a href="index.html">← Retour aux slides</a>
 </header>
 
@@ -299,7 +299,7 @@
     <button class="code-tab"       onclick="showTab('block')">blocking.js (sans worker)</button>
   </div>
 
-  <pre id="code-main"><span class="cmt">// main.js — thread principal</span>
+  <pre id="code-main"><span class="cmt">// main.js - thread principal</span>
 <span class="kw">const</span> worker = <span class="kw">new</span> <span class="fn">Worker</span>(<span class="str">'worker.js'</span>);
 
 <span class="cmt">// Envoyer une tâche au worker</span>
@@ -313,13 +313,13 @@ worker.onmessage = (e) => {
 
 <span class="cmt">// L'UI continue de répondre pendant ce temps !</span></pre>
 
-  <pre id="code-worker" style="display:none"><span class="cmt">// worker.js — même algorithme, thread séparé</span>
+  <pre id="code-worker" style="display:none"><span class="cmt">// worker.js - même algorithme, thread séparé</span>
 self.onmessage = (e) => {
   <span class="kw">const</span> { limit } = e.data; <span class="cmt">// 8 000 000</span>
   <span class="kw">const</span> t0 = <span class="fn">performance</span>.<span class="fn">now</span>();
   <span class="kw">let</span> count = <span class="fn">0</span>;
 
-  <span class="cmt">// Division par essai — identique au main thread</span>
+  <span class="cmt">// Division par essai - identique au main thread</span>
   <span class="kw">for</span> (<span class="kw">let</span> n = <span class="fn">2</span>; n &lt;= limit; n++) {
     <span class="kw">let</span> prime = <span class="kw">true</span>;
     <span class="kw">for</span> (<span class="kw">let</span> d = <span class="fn">2</span>; d * d &lt;= n; d++) {
@@ -331,16 +331,16 @@ self.onmessage = (e) => {
       self.<span class="fn">postMessage</span>({ progress: n / limit });
   }
 
-  <span class="cmt">// Résultat final — UI n'a jamais été bloquée</span>
+  <span class="cmt">// Résultat final - UI n'a jamais été bloquée</span>
   self.<span class="fn">postMessage</span>({ count, duration: (<span class="fn">performance</span>.<span class="fn">now</span>() - t0).<span class="fn">toFixed</span>(<span class="fn">1</span>) });
 };</pre>
 
-  <pre id="code-block" style="display:none"><span class="cmt">// Sans worker — division par essai naïve dans le main thread</span>
+  <pre id="code-block" style="display:none"><span class="cmt">// Sans worker - division par essai naïve dans le main thread</span>
 <span class="kw">const</span> LIMIT = <span class="fn">8_000_000</span>;
 <span class="kw">const</span> t0 = <span class="fn">performance</span>.<span class="fn">now</span>();
 <span class="kw">let</span> count = <span class="fn">0</span>;
 
-<span class="cmt">// O(n√n) — intentionnellement lent pour démontrer le freeze</span>
+<span class="cmt">// O(n√n) - intentionnellement lent pour démontrer le freeze</span>
 <span class="fn">outer</span>: <span class="kw">for</span> (<span class="kw">let</span> n = <span class="fn">2</span>; n &lt;= LIMIT; n++) {
   <span class="kw">for</span> (<span class="kw">let</span> d = <span class="fn">2</span>; d * d &lt;= n; d++) {
     <span class="kw">if</span> (n % d === <span class="fn">0</span>) <span class="kw">continue</span> outer;
@@ -420,7 +420,7 @@ self.onmessage = (e) => {
     setTimeout(() => {
       mainBusy = true;
       const t0 = performance.now();
-      // Division par essai naïve O(n√n) — intentionnellement lente pour démontrer le freeze
+      // Division par essai naïve O(n√n) - intentionnellement lente pour démontrer le freeze
       const BLOCK_LIMIT = 8_000_000;
       let count = 0;
       outer: for (let n = 2; n <= BLOCK_LIMIT; n++) {
